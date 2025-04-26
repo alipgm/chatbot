@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم پرسش و پاسخ | علی محرم‌زاده</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --text: #2c3e50;
+            --light-bg: #f5f5f5;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--light-bg);
+            color: var(--text);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #question-input {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: border 0.3s;
+        }
+        #question-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        #answer-box {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            min-height: 120px;
+            border-left: 4px solid var(--primary);
+        }
+        #answer-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .confidence {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .loading {
+            color: var(--primary);
+            font-style: italic;
+        }
+        .error {
+            color: var(--error);
+        }
+        .success {
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>پرسش و پاسخ درباره علی محرم‌زاده</h1>
+        
+        <div class="input-group">
+            <input type="text" id="question-input" placeholder="مثال: رشته تحصیلی علی چیست؟" autocomplete="off">
+            <button onclick="askQuestion()">ارسال سوال</button>
+        </div>
+        
+        <div id="answer-box">
+            <p id="answer-text">پاسخ شما اینجا نمایش داده خواهد شد...</p>
+            <p id="confidence" class="confidence"></p>
+        </div>
+    </div>
+
+    <script>
+        function askQuestion() {
+            const questionInput = document.getElementById('question-input');
+            const question = questionInput.value.trim();
+            const answerText = document.getElementById('answer-text');
+            const confidence = document.getElementById('confidence');
+            
+            // اعتبارسنجی ورودی
+            if (!question) {
+                answerText.innerHTML = '<span class="error">لطفاً سوال خود را وارد کنید</span>';
+                confidence.textContent = '';
+                questionInput.focus();
+                return;
+            }
+            
+            // نمایش حالت بارگذاری
+            answerText.innerHTML = '<span class="loading">در حال پردازش سوال...</span>';
+            confidence.textContent = '';
+            
+            // ارسال درخواست به سرور
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('پاسخ نامعتبر از سرور');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    answerText.innerHTML = `<span class="success">${data.answer || 'پاسخی یافت نشد'}</span>`;
+                    confidence.textContent = `میزان اطمینان: ${data.confidence}`;
+                } else {
+                    answerText.innerHTML = `<span class="error">${data.error || 'خطای ناشناخته'}</span>`;
+                }
+            })
+            .catch(error => {
+                answerText.innerHTML = `<span class="error">خطا در ارتباط با سرور: ${error.message}</span>`;
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                questionInput.focus();
+            });
+        }
+        
+        // فعال کردن ارسال با دکمه Enter
+        document.getElementById('question-input')
+            .addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    askQuestion();
+                }
+            });
+    </script>
+</body>
+</html>
